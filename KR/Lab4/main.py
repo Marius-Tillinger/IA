@@ -52,15 +52,75 @@ class Graf:
                 if istiva == istiva2: 
                     continue
                 copieStive[istiva2].append(bloc)
-                nodNou = NodArbore(copieStive, nod, nod.g+1, self.calculeaza_h(copieStive))
+                nodNou = NodArbore(copieStive, nod, nod.g+1, self.calculeaza_h(copieStive, "costuri"))
                 if not nodNou.vizitat():
                     l.append(nodNou)
         # if not nodNou.vizitat():
         #     l.append(nodNou)
         return l
 
-    def calculeaza_h(self, info):
-        return 0
+    def calculeaza_h(self, infoNod, tip_euristica="banala"):
+        #euristica banală: daca nu e stare scop, returnez 1, altfel 0
+        if tip_euristica=="banala":
+            if infoNod not in self.scopuri:
+                return 1 #se pune costul minim pe o mutare
+            return 0            
+        elif tip_euristica=="mutari":
+            #calculez cate blocuri nu sunt la locul fata de fiecare dintre starile scop, 
+            #si apoi iau minimul dintre aceste valori
+            euristici=[]
+            for (iScop,scop) in enumerate(self.scopuri):
+                h=0
+                for iStiva, stiva in enumerate(infoNod):
+                        for iElem, elem in enumerate(stiva):
+                            try:
+                                #exista în stiva scop indicele iElem dar pe acea pozitie nu se afla blocul din infoNod
+                                if elem!=scop[iStiva][iElem]:
+                                    h+=1 #adun cu costul minim pe o mutare (adica costul lui a)
+                            except IndexError:
+                                #nici macar nu exista pozitia iElem in stiva cu indicele iStiva din scop
+                                h+=1
+                euristici.append(h)
+            return min(euristici)       
+        elif tip_euristica=="costuri":
+            #calculez cate blocuri nu sunt la locul fata de fiecare dintre starile scop, 
+            #si apoi iau minimul dintre aceste valori
+            euristici=[]
+            for (iScop,scop) in enumerate(self.scopuri):
+                h=0
+                for iStiva, stiva in enumerate(infoNod):
+                        for iElem, elem in enumerate(stiva):
+                            try:
+                                #exista în stiva scop indicele iElem dar pe acea pozitie nu se afla blocul din infoNod
+                                if elem!=scop[iStiva][iElem]:
+                                    h+=1
+                                else: # elem==scop[iStiva][iElem]:
+                                    if stiva[:iElem]!=scop[iStiva][:iElem]:
+                                     h+=2
+                            except IndexError:
+                                #nici macar nu exista pozitia iElem in stiva cu indicele iStiva din scop
+                                h+=1
+                euristici.append(h)
+            return min(euristici)
+        else: #tip_euristica=="euristica neadmisibila"
+            euristici=[]
+            # Supraestimez costurile
+            for (iScop,scop) in enumerate(self.scopuri):
+                h=0
+                for iStiva, stiva in enumerate(infoNod):
+                        for iElem, elem in enumerate(stiva):
+                            try:
+                                #exista în stiva scop indicele iElem dar pe acea pozitie nu se afla blocul din infoNod
+                                if elem!=scop[iStiva][iElem]:
+                                    h+=3
+                                else: # elem==scop[iStiva][iElem]:
+                                    if stiva[:iElem]!=scop[iStiva][:iElem]:
+                                        h+=2
+                            except IndexError:
+                                #nici macar nu exista pozitia iElem in stiva cu indicele iStiva din scop
+                                h+=3
+                euristici.append(h)
+            return max(euristici)
     
     def valideaza(self):
         cond1 = all([len(self.start)==len(scop) for scop in self.scopuri])
@@ -175,11 +235,11 @@ def calculeazaStive(sirStiva):
     listaSiruriStive = sirStiva.strip().split("\n")
     return [sir.strip().split() if sir != "#" else [] for sir in listaSiruriStive]
 
-f = open("input.txt", "r")
-continut = f.read()
+f = open("Lab4\input.txt", "r")
+sirStart, sirScopuri = f.read().strip().split("=========")
 
-start = 0
-scopuri = [4,6]
+start = calculeazaStive(sirStart)
+scopuri = [calculeazaStive(sirSt) for sirSt in sirScopuri.strip().split('---')]
 
 gr=Graf(start, scopuri)
 a_star(gr)
